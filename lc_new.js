@@ -3083,8 +3083,11 @@ app.get('/reset-learning', (req, res) => {
       recentAccuracy: []
     }
   };
+  predictionHistory = { hu: [], md5: [] };
+  lastProcessedPhien = { hu: null, md5: null };
   saveLearningData();
-  res.json({ message: 'Learning data reset successfully' });
+  savePredictionHistory();
+  res.json({ message: 'Reset toàn bộ dữ liệu thành công' });
 });
 
 loadLearningData();
