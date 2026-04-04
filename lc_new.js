@@ -2792,11 +2792,15 @@ function calculateAdvancedPrediction(data, type) {
 }
 
 function savePredictionToHistory(type, phien, prediction, confidence) {
+  // Không lưu nếu phiên này đã có trong lịch sử
+  const exists = predictionHistory[type].some(r => r.phien_hien_tai === phien.toString());
+  if (exists) return null;
+
   const record = {
-    phien_hien_tai: phien.toString(),  // Đã sửa thành phien_hien_tai
+    phien_hien_tai: phien.toString(),
     du_doan: normalizeResult(prediction),
     ti_le: `${confidence}%`,
-    id: '@tiendataox',  // Đã sửa thành @tiendataox
+    id: '@tiendataox',
     timestamp: new Date().toISOString()
   };
   
