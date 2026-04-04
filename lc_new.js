@@ -3086,6 +3086,15 @@ app.get('/reset-learning', (req, res) => {
 loadLearningData();
 loadPredictionHistory();
 
+function tinhTongTien(verifiedPredictions) {
+  let tong = 0;
+  const sorted = [...verifiedPredictions].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+  for (const pred of sorted) {
+    tong += pred.isCorrect ? 1 : -1;
+  }
+  return tong > 0 ? `+${tong}` : `${tong}`;
+}
+
 // Thống kê tổng hợp Hũ
 app.get('/lc79-hu/thongke', (req, res) => {
   const stats = learningData.hu;
@@ -3093,13 +3102,15 @@ app.get('/lc79-hu/thongke', (req, res) => {
   const dung = verifiedPredictions.filter(p => p.isCorrect === true).length;
   const sai = verifiedPredictions.filter(p => p.isCorrect === false).length;
   const tyLe = verifiedPredictions.length > 0 ? ((dung / verifiedPredictions.length) * 100).toFixed(1) : 0;
-  
+  const tien = tinhTongTien(verifiedPredictions);
+
   res.json({
     type: 'THỐNG KÊ TỰ HỌC (HŨ)',
     tong_du_doan_da_co_ket_qua: verifiedPredictions.length,
     so_lan_dung: dung,
     so_lan_sai: sai,
     ty_le_chinh_xac: `${tyLe}%`,
+    tong_tien: tien,
     chuoi_thang_thua_hien_tai: stats.streakAnalysis.currentStreak,
     chuoi_thang_cao_nhat: stats.streakAnalysis.bestStreak,
     chuoi_thua_cao_nhat: Math.abs(stats.streakAnalysis.worstStreak),
@@ -3114,13 +3125,15 @@ app.get('/lc79-md5/thongke', (req, res) => {
   const dung = verifiedPredictions.filter(p => p.isCorrect === true).length;
   const sai = verifiedPredictions.filter(p => p.isCorrect === false).length;
   const tyLe = verifiedPredictions.length > 0 ? ((dung / verifiedPredictions.length) * 100).toFixed(1) : 0;
-  
+  const tien = tinhTongTien(verifiedPredictions);
+
   res.json({
     type: 'THỐNG KÊ TỰ HỌC (MD5)',
     tong_du_doan_da_co_ket_qua: verifiedPredictions.length,
     so_lan_dung: dung,
     so_lan_sai: sai,
     ty_le_chinh_xac: `${tyLe}%`,
+    tong_tien: tien,
     chuoi_thang_thua_hien_tai: stats.streakAnalysis.currentStreak,
     chuoi_thang_cao_nhat: stats.streakAnalysis.bestStreak,
     chuoi_thua_cao_nhat: Math.abs(stats.streakAnalysis.worstStreak),
