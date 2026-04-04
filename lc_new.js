@@ -3105,15 +3105,17 @@ function tinhTongTien(verifiedPredictions) {
 // Thống kê tổng hợp Hũ
 app.get('/lc79-hu/thongke', (req, res) => {
   const history = predictionHistory.hu;
-  const verified = history.filter(p => p.status === '✅' || p.status === '❌');
-  const dung = verified.filter(p => p.status === '✅').length;
-  const sai = verified.filter(p => p.status === '❌').length;
+  const verified = history.filter(r => {
+    const pred = learningData.hu.predictions.find(p => p.phien === r.phien_hien_tai);
+    return pred && pred.verified;
+  });
+  const dung = verified.filter(r => {
+    const pred = learningData.hu.predictions.find(p => p.phien === r.phien_hien_tai);
+    return pred && pred.isCorrect === true;
+  }).length;
+  const sai = verified.length - dung;
   const tyLe = verified.length > 0 ? ((dung / verified.length) * 100).toFixed(1) : 0;
-
-  let tong = 0;
-  for (const p of [...verified].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))) {
-    tong += p.status === '✅' ? 1 : -1;
-  }
+  const tong = dung - sai;
   const tongTien = tong > 0 ? `+${tong}` : `${tong}`;
 
   res.json({
@@ -3130,15 +3132,17 @@ app.get('/lc79-hu/thongke', (req, res) => {
 // Thống kê tổng hợp MD5
 app.get('/lc79-md5/thongke', (req, res) => {
   const history = predictionHistory.md5;
-  const verified = history.filter(p => p.status === '✅' || p.status === '❌');
-  const dung = verified.filter(p => p.status === '✅').length;
-  const sai = verified.filter(p => p.status === '❌').length;
+  const verified = history.filter(r => {
+    const pred = learningData.md5.predictions.find(p => p.phien === r.phien_hien_tai);
+    return pred && pred.verified;
+  });
+  const dung = verified.filter(r => {
+    const pred = learningData.md5.predictions.find(p => p.phien === r.phien_hien_tai);
+    return pred && pred.isCorrect === true;
+  }).length;
+  const sai = verified.length - dung;
   const tyLe = verified.length > 0 ? ((dung / verified.length) * 100).toFixed(1) : 0;
-
-  let tong = 0;
-  for (const p of [...verified].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))) {
-    tong += p.status === '✅' ? 1 : -1;
-  }
+  const tong = dung - sai;
   const tongTien = tong > 0 ? `+${tong}` : `${tong}`;
 
   res.json({
