@@ -2728,6 +2728,79 @@ function calculateAdvancedPrediction(data, type) {
     factors.push(cauTuNhien.name);
     allPatterns.push(cauTuNhien);
   }
+
+  // ===== MARKOV CHAIN (đã kiểm chứng hiệu quả nhất) =====
+  if (last50.length >= 20) {
+    const trans = { 'Tài->Tài': 0, 'Tài->Xỉu': 0, 'Xỉu->Tài': 0, 'Xỉu->Xỉu': 0 };
+    for (let i = 1; i < results.length; i++) {
+      const key = `${results[i]}->${results[i-1]}`;
+      if (trans[key] !== undefined) trans[key]++;
+    }
+    const lastResult = results[0];
+    const toTai = trans[`${lastResult}->Tài`];
+    const toXiu = trans[`${lastResult}->Xỉu`];
+    const markovTotal = toTai + toXiu;
+    if (markovTotal > 0) {
+      const markovPred = toTai >= toXiu ? 'Tài' : 'Xỉu';
+      const markovConf = Math.round((Math.max(toTai, toXiu) / markovTotal) * 15);
+      predictions.push({ prediction: markovPred, confidence: markovConf, priority: 12, name: 'Markov Chain' });
+      factors.push(`Markov (${lastResult}→${markovPred} ${Math.round(Math.max(toTai,toXiu)/markovTotal*100)}%)`);
+    }
+  }
+
+  // ===== PATTERN 2 PHIÊN (Markov bậc 2) =====
+  if (results.length >= 30) {
+    const last2 = results.slice(0, 2).join(',');
+    let p2Tai = 0, p2Xiu = 0;
+    for (let i = 2; i < results.length; i++) {
+      if (results.slice(i, i+2).join(',') === last2) {
+        if (results[i-1] === 'Tài') p2Tai++;
+        else p2Xiu++;
+      }
+    }
+    if (p2Tai + p2Xiu >= 5) {
+      const p2Pred = p2Tai >= p2Xiu ? 'Tài' : 'Xỉu';
+      const p2Conf = Math.round((Math.max(p2Tai, p2Xiu) / (p2Tai + p2Xiu)) * 14);
+      predictions.push({ prediction: p2Pred, confidence: p2Conf, priority: 11, name: 'Pattern 2 phiên' });
+      factors.push(`Pattern2 (${p2Pred} ${Math.round(Math.max(p2Tai,p2Xiu)/(p2Tai+p2Xiu)*100)}%)`);
+    }
+  }
+
+  // ===== PHÂN BỐ 20 PHIÊN - về trung bình =====
+  if (results.length >= 20) {
+    const last20 = results.slice(0, 20);
+    const taiCount20 = last20.filter(r => r === 'Tài').length;
+    if (taiCount20 >= 14) {
+      predictions.push({ prediction: 'Xỉu', confidence: 8, priority: 8, name: 'Phân bố 20 lệch Tài' });
+      factors.push(`Phân bố 20 phiên lệch Tài (${taiCount20}/20)`);
+    } else if (taiCount20 <= 6) {
+      predictions.push({ prediction: 'Tài', confidence: 8, priority: 8, name: 'Phân bố 20 lệch Xỉu' });
+      factors.push(`Phân bố 20 phiên lệch Xỉu (${20-taiCount20}/20)`);
+    }
+  }
+
+  // ===== PATTERN 3 PHIÊN MẠNH =====
+  if (results.length >= 40) {
+    const last3 = results.slice(0, 3).join(',');
+    let p3Tai = 0, p3Xiu = 0;
+    for (let i = 3; i < results.length; i++) {
+      if (results.slice(i, i+3).join(',') === last3) {
+        results[i-1] === 'Tài' ? p3Tai++ : p3Xiu++;
+      }
+    }
+    if (p3Tai + p3Xiu >= 4) {
+      const p3Conf = Math.max(p3Tai, p3Xiu) / (p3Tai + p3Xiu);
+      const p3Pred = p3Tai >= p3Xiu ? 'Tài' : 'Xỉu';
+      if (p3Conf >= 0.65) {
+        // Pattern 3 rất mạnh → ưu tiên cao nhất
+        predictions.push({ prediction: p3Pred, confidence: Math.round(p3Conf * 18), priority: 15, name: 'Pattern 3 phiên mạnh' });
+        factors.push(`Pattern3 mạnh (${p3Pred} ${Math.round(p3Conf*100)}%)`);
+      } else {
+        predictions.push({ prediction: p3Pred, confidence: Math.round(p3Conf * 12), priority: 11, name: 'Pattern 3 phiên' });
+        factors.push(`Pattern3 (${p3Pred} ${Math.round(p3Conf*100)}%)`);
+      }
+    }
+  }
   
   predictions.sort((a, b) => b.priority - a.priority || b.confidence - a.confidence);
   
