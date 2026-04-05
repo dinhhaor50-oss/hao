@@ -2785,19 +2785,20 @@ function calculateAdvancedPrediction(data, type) {
     const lastR = results[0];
     const prevR = results[1];
     if (lastR !== prevR) {
-      // Vừa đảo chiều - đếm chuỗi trước đó
       let prevStreak = 1;
       for (let i = 2; i < results.length; i++) {
         if (results[i] === prevR) prevStreak++;
         else break;
       }
       if (prevStreak >= 4) {
-        // Đảo chiều sau chuỗi dài → theo chiều mới với priority cao
         predictions.push({ prediction: lastR, confidence: 14, priority: 13, name: `Đảo chiều sau chuỗi ${prevStreak}` });
         factors.push(`Đảo chiều sau chuỗi ${prevR} x${prevStreak}`);
       }
     }
   }
+
+  // ===== PATTERN 3 PHIÊN MẠNH =====
+  if (results.length >= 40) {
     const last3 = results.slice(0, 3).join(',');
     let p3Tai = 0, p3Xiu = 0;
     for (let i = 3; i < results.length; i++) {
@@ -2809,7 +2810,6 @@ function calculateAdvancedPrediction(data, type) {
       const p3Conf = Math.max(p3Tai, p3Xiu) / (p3Tai + p3Xiu);
       const p3Pred = p3Tai >= p3Xiu ? 'Tài' : 'Xỉu';
       if (p3Conf >= 0.65) {
-        // Pattern 3 rất mạnh → ưu tiên cao nhất
         predictions.push({ prediction: p3Pred, confidence: Math.round(p3Conf * 18), priority: 15, name: 'Pattern 3 phiên mạnh' });
         factors.push(`Pattern3 mạnh (${p3Pred} ${Math.round(p3Conf*100)}%)`);
       } else {
