@@ -2779,8 +2779,25 @@ function calculateAdvancedPrediction(data, type) {
     }
   }
 
-  // ===== PATTERN 3 PHIÊN MẠNH =====
-  if (results.length >= 40) {
+  // ===== REVERSAL DETECTION: Phát hiện đảo chiều sau chuỗi dài =====
+  // Nếu vừa đảo chiều sau chuỗi >= 4 phiên → theo chiều mới
+  if (results.length >= 6) {
+    const lastR = results[0];
+    const prevR = results[1];
+    if (lastR !== prevR) {
+      // Vừa đảo chiều - đếm chuỗi trước đó
+      let prevStreak = 1;
+      for (let i = 2; i < results.length; i++) {
+        if (results[i] === prevR) prevStreak++;
+        else break;
+      }
+      if (prevStreak >= 4) {
+        // Đảo chiều sau chuỗi dài → theo chiều mới với priority cao
+        predictions.push({ prediction: lastR, confidence: 14, priority: 13, name: `Đảo chiều sau chuỗi ${prevStreak}` });
+        factors.push(`Đảo chiều sau chuỗi ${prevR} x${prevStreak}`);
+      }
+    }
+  }
     const last3 = results.slice(0, 3).join(',');
     let p3Tai = 0, p3Xiu = 0;
     for (let i = 3; i < results.length; i++) {
@@ -2955,25 +2972,29 @@ app.get('/lc79-hu/lichsu', async (req, res) => {
     if (data && data.length > 0) {
       await verifyPredictions('hu', data);
     }
-    
-    const historyWithStatus = predictionHistory.hu.map(record => {
-      const prediction = learningData.hu.predictions.find(p => p.phien === record.phien_hien_tai);
-      
+
+    // Map phiên thực tế để tra cứu nhanh
+    const actualMap = {};
+    if (data) data.forEach(d => { actualMap[d.Phien.toString()] = d.Ket_qua; });
+
+    const historyWithStatus = predictionHistory.hu.slice(0, 200).map(record => {
+      const phien = record.phien_hien_tai;
+      const duDoan = record.du_doan; // "tai" hoặc "xiu"
+      const ketQuaThucTe = actualMap[phien] || null;
+
       let status = null;
-      let ket_qua_thuc_te = null;
-      
-      if (prediction && prediction.verified) {
-        status = prediction.isCorrect ? '✅' : '❌';
-        ket_qua_thuc_te = prediction.actual;
+      if (ketQuaThucTe) {
+        const duDoanNorm = (duDoan === 'tai' || duDoan === 'Tài') ? 'Tài' : 'Xỉu';
+        status = duDoanNorm === ketQuaThucTe ? '✅' : '❌';
       }
-      
+
       return {
         ...record,
-        ket_qua_thuc_te,
+        ket_qua_thuc_te: ketQuaThucTe,
         status
       };
     });
-    
+
     res.json({
       type: 'Lẩu Cua 79 - Tài Xỉu Hũ',
       history: historyWithStatus,
@@ -2982,7 +3003,7 @@ app.get('/lc79-hu/lichsu', async (req, res) => {
   } catch (error) {
     res.json({
       type: 'Lẩu Cua 79 - Tài Xỉu Hũ',
-      history: predictionHistory.hu,
+      history: predictionHistory.hu.slice(0, 200),
       total: predictionHistory.hu.length
     });
   }
@@ -2994,25 +3015,28 @@ app.get('/lc79-md5/lichsu', async (req, res) => {
     if (data && data.length > 0) {
       await verifyPredictions('md5', data);
     }
-    
-    const historyWithStatus = predictionHistory.md5.map(record => {
-      const prediction = learningData.md5.predictions.find(p => p.phien === record.phien_hien_tai);
-      
+
+    const actualMap = {};
+    if (data) data.forEach(d => { actualMap[d.Phien.toString()] = d.Ket_qua; });
+
+    const historyWithStatus = predictionHistory.md5.slice(0, 200).map(record => {
+      const phien = record.phien_hien_tai;
+      const duDoan = record.du_doan;
+      const ketQuaThucTe = actualMap[phien] || null;
+
       let status = null;
-      let ket_qua_thuc_te = null;
-      
-      if (prediction && prediction.verified) {
-        status = prediction.isCorrect ? '✅' : '❌';
-        ket_qua_thuc_te = prediction.actual;
+      if (ketQuaThucTe) {
+        const duDoanNorm = (duDoan === 'tai' || duDoan === 'Tài') ? 'Tài' : 'Xỉu';
+        status = duDoanNorm === ketQuaThucTe ? '✅' : '❌';
       }
-      
+
       return {
         ...record,
-        ket_qua_thuc_te,
+        ket_qua_thuc_te: ketQuaThucTe,
         status
       };
     });
-    
+
     res.json({
       type: 'Lẩu Cua 79 - Tài Xỉu MD5',
       history: historyWithStatus,
@@ -3021,7 +3045,7 @@ app.get('/lc79-md5/lichsu', async (req, res) => {
   } catch (error) {
     res.json({
       type: 'Lẩu Cua 79 - Tài Xỉu MD5',
-      history: predictionHistory.md5,
+      history: predictionHistory.md5.slice(0, 200),
       total: predictionHistory.md5.length
     });
   }
